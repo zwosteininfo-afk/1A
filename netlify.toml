@@ -1,0 +1,7 @@
+[build]
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/calculate-price"
+  to = "/.netlify/functions/calculate-price"
+  status = 200
