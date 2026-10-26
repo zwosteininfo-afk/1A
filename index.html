@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ZWO-STEIN LEGO Ankauf</title>
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: transparent; color: #1e293b; margin: 0; padding: 0; box-sizing: border-box; overflow-x: hidden; }
+        * { box-sizing: border-box; }
+        
+        .zs-form-card { 
+            background: #ffffff; 
+            border: none; 
+            border-radius: 0; 
+            padding: 4px 8px 70px 8px; 
+            max-width: 100%; 
+            width: 100%; 
+            margin: 0 auto; 
+            box-sizing: border-box; 
+            box-shadow: none; 
+            position: relative;
+            z-index: 10;
+        }
+        
+        .zs-pricing-radio-grid-kilo { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+
+        .zs-price-option { position: relative; }
+        .zs-price-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+        .zs-price-card { background: #f8fafc; border: 2px solid #cbd5e1; border-radius: 8px; padding: 8px; cursor: pointer; transition: all 0.2s ease; height: 100%; display: flex; flex-direction: column; }
+        .zs-price-option input[type="radio"]:checked + .zs-price-card { border-color: #e3342f; background: #fff5f5; box-shadow: 0 0 0 2px #e3342f; }
+        .zs-price-badge-key { display: inline-block; background: #e2e8f0; color: #1e293b; font-size: 0.68rem; font-weight: 800; padding: 2px 5px; border-radius: 4px; margin-bottom: 3px; width: fit-content; }
+        .zs-price-option input[type="radio"]:checked + .zs-price-card .zs-price-badge-key { background: #e3342f; color: #ffffff; }
+        .zs-price-title { font-size: 0.8rem; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; line-height: 1.1; }
+        .zs-price-desc { font-size: 0.7rem; color: #64748b; line-height: 1.1; }
+        
+        .zs-group { margin-bottom: 6px; }
+        .zs-label { display: block; font-weight: 600; margin-bottom: 3px; font-size: 0.82rem; }
+        .zs-input, .zs-select, .zs-textarea { width: 100%; padding: 8px 10px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 16px !important; outline: none; background: #f8fafc; font-family: inherit; }
+        .zs-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        
+        .zs-cart-container { background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 12px; display: block; position: relative; z-index: 20; }
+        .zs-cart-header { font-weight: 800; font-size: 0.85rem; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .zs-cart-items { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+        .zs-cart-item { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; font-size: 0.8rem; }
+        .zs-cart-item-info { display: flex; flex-direction: column; gap: 2px; flex-grow: 1; }
+        .zs-cart-item-title { font-weight: 700; color: #1e293b; line-height: 1.2; }
+        .zs-cart-item-details { font-size: 0.72rem; color: #64748b; }
+        .zs-cart-item-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .zs-cart-item-price { font-weight: 800; color: #15803d; font-size: 0.85rem; }
+        .zs-remove-btn { background: none; border: none; color: #ef4444; cursor: pointer; font-weight: bold; font-size: 1rem; padding: 0; line-height: 1; position: relative; z-index: 30; }
+        .zs-total-badge { background: #22c55e; color: #ffffff; padding: 2px 6px; border-radius: 10px; font-weight: 800; font-size: 0.8rem; white-space: nowrap; }
+
+        .zs-form-section { display: none; }
+        .zs-form-section.active { display: block; }
+
+        .zs-step-indicator { font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
+        .zs-step-heading { font-size: 1rem; font-weight: 800; color: #1e293b; margin-bottom: 10px; }
+
+        /* SCHÖNES BENUTZERDEFINIERTES HINWEIS-MODAL */
+        .zs-alert-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 999999; justify-content: center; align-items: center; padding: 15px; }
+        .zs-alert-card { background: #ffffff; border-radius: 16px; max-width: 380px; width: 100%; display: flex; flex-direction: column; box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.3); position: relative; font-family: inherit; overflow: hidden; animation: zsPopupScale 0.25s ease-out; }
+        @keyframes zsPopupScale { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .zs-alert-header { padding: 20px 20px 10px 20px; text-align: center; }
+        .zs-alert-icon { font-size: 2.2rem; margin-bottom: 8px; }
+        .zs-alert-title { font-size: 1.1rem; font-weight: 800; color: #1a1a1a; margin-bottom: 6px; }
+        .zs-alert-body { padding: 0 20px 20px 20px; font-size: 0.85rem; color: #475569; text-align: center; line-height: 1.5; }
+        .zs-alert-footer { padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: center; }
+
+        .zs-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 999999; justify-content: center; align-items: center; padding: 10px; }
+        .zs-modal-card { background: #ffffff; border-radius: 12px; max-width: 420px; width: 100%; display: flex; flex-direction: column; box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.4); position: relative; font-family: inherit; overflow: hidden; max-height: 90vh; }
+        .zs-modal-header { padding: 10px 14px 6px 14px; background: #ffffff; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; position: relative; }
+        .zs-modal-close { position: absolute; top: 8px; right: 12px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; z-index: 20; }
+        .zs-modal-close:hover { background: #f1f5f9; }
+        .zs-modal-body { padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+        .zs-modal-footer { padding: 6px 14px 10px 14px; background: #ffffff; border-top: 1px solid #e2e8f0; flex-shrink: 0; }
+        .zs-step-box { display: none; flex-direction: column; }
+        .zs-step-box.active { display: flex; }
+        .zs-modal-title { font-size: 1rem; font-weight: 800; margin-bottom: 2px; color: #1a1a1a; padding-right: 25px; }
+        .zs-modal-sub { font-size: 0.75rem; color: #64748b; margin-bottom: 0; }
+        
+        .zs-range-box { background: #f0fdf4; border: 1.5px solid #22c55e; border-radius: 6px; padding: 4px 8px; text-align: center; margin-bottom: 4px; }
+        .zs-range-title { font-size: 0.65rem; font-weight: 700; color: #166534; text-transform: uppercase; }
+        .zs-range-price { font-size: 1rem; font-weight: 800; color: #15803d; margin-top: 1px; }
+
+        .zs-section-header { font-size: 0.68rem; font-weight: 800; color: #64748b; margin: 6px 0 2px 0; text-transform: uppercase; display: flex; align-items: center; gap: 4px; }
+        
+        .zs-rec-option { display: flex; align-items: center; justify-content: space-between; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 5px; padding: 4px 8px; margin-bottom: 2px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .zs-rec-option:hover { border-color: #94a3b8; background: #f8fafc; }
+        .zs-rec-left { display: flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 600; color: #1e293b; flex-grow: 1; }
+        .zs-rec-left input[type="radio"], .zs-rec-left input[type="checkbox"] { accent-color: #b48a51; width: 13px; height: 13px; }
+
+        .zs-counter-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 5px; padding: 4px 8px; margin-top: 4px; display: flex; align-items: center; justify-content: space-between; }
+        .zs-counter-controls { display: flex; align-items: center; gap: 6px; }
+        .zs-count-btn { width: 22px; height: 22px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.8rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .zs-count-display { font-size: 0.85rem; font-weight: bold; min-width: 16px; text-align: center; }
+
+        .zs-btn-primary { width: 100%; background-color: #b48a51; color: #ffffff; border: none; padding: 8px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+        .zs-btn-primary:hover { background-color: #9c7541; }
+        .zs-btn-cancel { width: 100%; background-color: #ffffff; color: #64748b; border: 1px solid #cbd5e1; padding: 5px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; margin-top: 2px; }
+        
+        .zs-opt-btn { width: 100%; text-align: left; background: #f8fafc; border: 2px solid #cbd5e1; padding: 8px; border-radius: 8px; margin-bottom: 4px; cursor: pointer; font-weight: 600; font-family: inherit; transition: all 0.2s; font-size: 0.85rem; }
+        .zs-opt-btn:hover { border-color: #e3342f; background: #fff5f5; }
+        .zs-flex-row { display: flex; gap: 6px; margin-top: 6px; }
+        
+        .zs-btn { width: 100%; background-color: #e3342f; color: #ffffff; border: none; padding: 10px; border-radius: 25px; font-size: 0.9rem; font-weight: 700; cursor: pointer; margin-top: 10px; font-family: inherit; }
+        .zs-btn:hover { background-color: #cc1f1a; }
+        
+        .zs-btn-fixed {
+            position: fixed !important;
+            bottom: 15px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            max-width: calc(100% - 30px) !important;
+            z-index: 9999 !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+        }
+
+        .zs-btn-secondary { background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 25px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-block; font-family: inherit; position: relative; z-index: 30; }
+
+        .zs-checkbox-group { display: flex; align-items: flex-start; gap: 6px; margin-top: 10px; margin-bottom: 10px; }
+        .zs-checkbox-group input[type="checkbox"] { width: 15px; height: 15px; margin-top: 2px; accent-color: #e3342f; cursor: pointer; flex-shrink: 0; }
+        .zs-checkbox-label { font-size: 0.76rem; color: #475569; line-height: 1.2; cursor: pointer; }
+        .zs-checkbox-label a { color: #e3342f; text-decoration: underline; font-weight: 600; }
+
+        .zs-success-msg { display: none; background: #ffffff; padding: 6px 2px; color: #1e293b; font-size: 0.85rem; line-height: 1.4; }
+        .zs-success-header { text-align: center; background: #f0fdf4; border: 2px solid #22c55e; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+        .zs-success-title { font-size: 1.1rem; font-weight: 800; color: #15803d; margin-bottom: 3px; }
+        .zs-section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+        .zs-section-title { font-weight: 700; color: #1e293b; margin-bottom: 6px; font-size: 0.95rem; }
+
+        @media (max-width: 600px) { .zs-pricing-radio-grid-kilo { grid-template-columns: 1fr; } .zs-grid-2 { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<!-- SCHÖNES BENUTZERDEFINIERTES ALERT MODAL -->
+<div id="zsCustomAlert" class="zs-alert-overlay">
+  <div class="zs-alert-card">
+    <div class="zs-alert-header">
+      <div class="zs-alert-icon" id="zsAlertIcon">💡</div>
+      <div class="zs-alert-title" id="zsAlertTitle">Hinweis</div>
+    </div>
+    <div class="zs-alert-body" id="zsAlertMessage">
+      Nachrichtentext...
+    </div>
+    <div class="zs-alert-footer">
+      <button type="button" class="zs-btn" style="margin-top:0; padding: 8px 20px; font-size: 0.85rem; width: auto;" onclick="window.closeCustomAlert()">Verstanden</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL POPUP (SET-SUCHE) -->
+<div id="zsSetModal" class="zs-modal-overlay">
+  <div class="zs-modal-card">
+    <button type="button" class="zs-modal-close" onclick="window.closeZsModal()">&times;</button>
+    
+    <!-- SCHRITT 1 -->
+    <div id="zsStep1" class="zs-step-box active">
+      <div class="zs-modal-header">
+        <div class="zs-modal-title">Set zur Prüfung eingeben</div>
+        <div class="zs-modal-sub">Gib die LEGO® Setnummer ein.</div>
+      </div>
+      <div class="zs-modal-body">
+        <div class="zs-flex-row" style="margin-top:0;">
+          <input type="text" id="zsSetNumberInput" class="zs-input" placeholder="z.B. 75192">
+          <button type="button" class="zs-btn" style="width: auto; margin-top:0; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem;" onclick="window.searchLegoSet()">Prüfen</button>
+        </div>
+        <div id="zsSearchLoader" style="display:none; font-size:0.75rem; color:#64748b; margin-top:4px;">🔍 Lade Preisdaten...</div>
+      </div>
+    </div>
+
+    <!-- SCHRITT 2 -->
+    <div id="zsStep2" class="zs-step-box">
+      <div class="zs-modal-header">
+        <div class="zs-modal-title">Zustand des Sets</div>
+        <div class="zs-modal-sub" id="zsFoundSetName">Set 75192-1</div>
+      </div>
+      <div class="zs-modal-body">
+        <div class="zs-range-box">
+          <div class="zs-range-title">Möglicher Ankaufspreis</div>
+          <div class="zs-range-price" id="zsRangeDisplay">0,00 €</div>
+        </div>
+        <div style="font-size: 0.78rem; margin-bottom: 2px; font-weight: 600;">Ist das Set neu oder gebraucht?</div>
+        <button type="button" class="zs-opt-btn" onclick="window.selectCondition('NEW')">📦 Neu (ungebaut) <div style="font-size:0.68rem; color:#64748b; font-weight:normal;">Originalverschweißt in OVP</div></button>
+        <button type="button" class="zs-opt-btn" onclick="window.selectCondition('USED')">🧩 Gebraucht <div style="font-size:0.68rem; color:#64748b; font-weight:normal;">Bereits aufgebaut / bespielt</div></button>
+      </div>
+    </div>
+
+    <!-- SCHRITT 3: NEU -->
+    <div id="zsStep3" class="zs-step-box">
+      <div class="zs-modal-header">
+        <div class="zs-modal-title">Verpackungszustand (Neu)</div>
+        <div class="zs-modal-sub">Wähle den genauen Zustand der Box</div>
+      </div>
+      <div class="zs-modal-body">
+        
+        <div class="zs-section-header" style="margin-top:0;">OVP versiegelt (ungeöffnet)</div>
+        <label class="zs-rec-option">
+          <div class="zs-rec-left"><input type="radio" name="newCondition" value="sealed_light_wear" checked onchange="window.updateNewCalc()"> Leichte Lagerspuren</div>
+        </label>
+        <label class="zs-rec-option">
+          <div class="zs-rec-left"><input type="radio" name="newCondition" value="sealed_heavy_wear" onchange="window.updateNewCalc()"> Deutliche Lagerspuren / Dellen</div>
+        </label>
+        <label class="zs-rec-option">
+          <div class="zs-rec-left"><input type="radio" name="newCondition" value="sealed_damaged" onchange="window.updateNewCalc()"> Beschädigung (Loch o.ä.)</div>
+        </label>
+
+        <div class="zs-section-header">OVP geöffnet (aber Tüten versiegelt)</div>
+        <label class="zs-rec-option">
+          <div class="zs-rec-left"><input type="radio" name="newCondition" value="opened_bags_light_wear" onchange="window.updateNewCalc()"> Leichte Lagerspuren</div>
+        </label>
+        <label class="zs-rec-option">
+          <div class="zs-rec-left"><input type="radio" name="newCondition" value="opened_bags_heavy_wear" onchange="window.updateNewCalc()"> Deutliche Lagerspuren / Dellen</div>
+        </label>
+        <label class="zs-rec-option">
+          <div class="zs-rec-left"><input type="radio" name="newCondition" value="opened_bags_damaged" onchange="window.updateNewCalc()"> Beschädigung (Loch o.ä.)</div>
+        </label>
+
+        <div class="zs-counter-box">
+          <div style="font-size: 0.75rem; font-weight: 700; color: #475569;">Anzahl Exemplare</div>
+          <div class="zs-counter-controls">
+            <button type="button" class="zs-count-btn" onclick="window.adjustQuantity(-1)">−</button>
+            <span id="zsSetQuantity" class="zs-count-display">1</span>
+            <button type="button" class="zs-count-btn" onclick="window.adjustQuantity(1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="zs-modal-footer">
+        <div style="text-align:center; padding:4px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:5px; margin-bottom:4px; font-weight:700; color:#15803d; font-size: 0.8rem;">
+          Auszahlungspreis: <span id="zsLivePricePreview">0,00 €</span>
+        </div>
+        <button type="button" class="zs-btn-primary" onclick="window.addCurrentSetToCart()">Zum Angebot hinzufügen</button>
+        <button type="button" class="zs-btn-cancel" onclick="window.closeZsModal()">Abbrechen</button>
+      </div>
+    </div>
+
+    <!-- SCHRITT 3B: GEBRAUCHT -->
+    <div id="zsStep3Used" class="zs-step-box">
+      <div class="zs-modal-header">
+        <div class="zs-modal-title">Zustand & Vollständigkeit (Gebraucht)</div>
+        <div class="zs-modal-sub">Gebrauchsspuren & Zubehör wählen</div>
+      </div>
+      <div class="zs-modal-body">
+        <div class="zs-section-header" style="margin-top:0;">Gebrauchsspuren</div>
+        
+        <label class="zs-rec-option">
+          <div class="zs-rec-left"><input type="radio" name="usedGrade" value="light" checked onchange="window.updateUsedCalc()"> Leichte Gebrauchsspuren</div>
+        </label>
+        <label class="zs-rec-option">
+          <div class="zs-rec-left"><input type="radio" name="usedGrade" value="medium" onchange="window.updateUsedCalc()"> Mittlere Gebrauchsspuren</div>
+        </label>
+        <label class="zs-rec-option">
+          <div class="zs-rec-left"><input type="radio" name="usedGrade" value="heavy" onchange="window.updateUsedCalc()"> Starke Gebrauchsspuren</div>
+        </label>
+
+        <div class="zs-section-header">Vollständigkeit / Zubehör</div>
+        
+        <label class="zs-rec-option" style="cursor: pointer;">
+          <div class="zs-rec-left"><input type="checkbox" id="chkManual" checked onchange="window.updateUsedCalc()"> Bauanleitung vorhanden</div>
+        </label>
+
+        <label class="zs-rec-option" style="cursor: pointer;">
+          <div class="zs-rec-left"><input type="checkbox" id="chkBox" onchange="window.updateUsedCalc()"> Originalkarton (OVP) vorhanden</div>
+        </label>
+
+        <div class="zs-counter-box">
+          <div style="font-size: 0.75rem; font-weight: 700; color: #475569;">Anzahl Exemplare</div>
+          <div class="zs-counter-controls">
+            <button type="button" class="zs-count-btn" onclick="window.adjustUsedQuantity(-1)">−</button>
+            <span id="zsUsedQuantity" class="zs-count-display">1</span>
+            <button type="button" class="zs-count-btn" onclick="window.adjustUsedQuantity(1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="zs-modal-footer">
+        <div style="text-align:center; padding:4px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:5px; margin-bottom:4px; font-weight:700; color:#15803d; font-size: 0.8rem;">
+          Auszahlungspreis: <span id="zsLiveUsedPricePreview">0,00 €</span>
+        </div>
+        <button type="button" class="zs-btn-primary" onclick="window.addUsedSetToCart()">Zum Angebot hinzufügen</button>
+        <button type="button" class="zs-btn-cancel" onclick="window.closeZsModal()">Abbrechen</button>
+      </div>
+    </div>
+
+    <!-- SCHRITT 4 -->
+    <div id="zsStep4" class="zs-step-box">
+      <div class="zs-modal-header">
+        <div class="zs-modal-title">Erfolgreich hinzugefügt!</div>
+      </div>
+      <div class="zs-modal-body">
+        <div style="text-align:center; padding:10px; background:#f0fdf4; border:1.5px solid #22c55e; border-radius:6px; margin-bottom:6px;">
+          <div style="font-size:0.75rem; color:#166534;" id="zsFinalSetTitle">-</div>
+          <div style="font-size:1.2rem; font-weight:800; color:#15803d;" id="zsFinalPriceDisplay">0,00 €</div>
+        </div>
+        <button type="button" class="zs-btn" onclick="window.closeZsModal()" style="margin-top:0; padding: 8px;">Fertig / Weiteren Artikel hinzufügen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HAUPTFORMULAR CONTAINER -->
+<div class="zs-form-card">
+
+  <div id="zsSuccessBox" class="zs-success-msg">
+    <div class="zs-success-header">
+      <div class="zs-success-title">🎉 Vielen Dank für deine Ankaufsanfrage!</div>
+      <div>Wir haben deine Daten erfolgreich erhalten und prüfen dein Angebot umgehend.</div>
+    </div>
+
+    <div style="font-weight: 700; margin-bottom: 12px; font-size: 1.05rem;">So geht es jetzt für dich weiter:</div>
+
+    <div class="zs-section-box">
+      <div class="zs-section-title">📦 Für DHL-Versand (Kostenlos ab 5 kg)</div>
+      <ul style="margin: 0; padding-left: 20px;">
+        <li><strong>Prüfung innerhalb von 24 Stunden:</strong> Du erhältst spätestens in 24h eine Bestätigung per E-Mail.</li>
+        <li><strong>Kostenloses Versandlabel:</strong> Per E-Mail als PDF zum Drucken oder als QR-Code fürs Smartphone.</li>
+        <li><strong>Verpacken & Versenden:</strong> Verpacke die Steine am besten in einen reißfesten Plastiksack im Karton (max. 120 × 60 × 60 cm) und gib ihn bei DHL ab.</li>
+        <li><strong>Auszahlung:</strong> Innerhalb von 5 Werktagen nach Eingang und Nachwiegen (Banküberweisung oder PayPal).</li>
+      </ul>
+    </div>
+
+    <div class="zs-section-box">
+      <div class="zs-section-title">🤝 Für persönliche Abgabe in Bad Tölz</div>
+      <ul style="margin: 0; padding-left: 20px;">
+        <li><strong>Terminabstimmung:</strong> Wir melden uns in Kürze per E-Mail oder WhatsApp/Telefon für einen Übergabetermin.</li>
+        <li><strong>Vor-Ort-Prüfung:</strong> Wiegen und Prüfen direkt bei der Übergabe vor Ort.</li>
+        <li><strong>Sofortige Auszahlung:</strong> Direkt bei der Übergabe (Bar, Banküberweisung oder PayPal).</li>
+      </ul>
+    </div>
+
+    <div class="zs-section-box">
+      <div class="zs-section-title">🚗 Für Abholung durch uns (Raum Bad Tölz)</div>
+      <ul style="margin: 0; padding-left: 20px;">
+        <li><strong>Kontaktaufnahme:</strong> Wir kontaktieren dich innerhalb von 24 Stunden zur Terminabsprache.</li>
+        <li><strong>Abholung vor Ort:</strong> Wir kommen zu dir nach Hause, wiegen und nehmen die Steine direkt mit.</li>
+        <li><strong>Sofortige Auszahlung:</strong> Direkt bei der Übergabe (Bar, Banküberweisung oder PayPal).</li>
+      </ul>
+    </div>
+
+    <div style="text-align: center;">
+      <button type="button" class="zs-btn-secondary" onclick="window.resetZsForm()">← Neues Angebot abgeben</button>
+    </div>
+  </div>
+
+  <form id="zsForm" action="https://api.web3forms.com/submit" method="POST" novalidate>
+    <input type="hidden" name="access_key" value="3996232f-386f-4456-b93a-95dc10f63751">
+    <input type="hidden" name="subject" value="Neue Ankaufsanfrage über zwo-stein.de">
+    <input type="hidden" name="from_name" value="ZWO-STEIN Website">
+    <input type="checkbox" name="botcheck" class="hidden" style="display: none;">
+
+    <!-- SCHRITT 1: LEGO & GEWICHT -->
+    <div id="zsPart1" class="zs-form-section active">
+      <div class="zs-step-indicator">Schritt 1 von 3</div>
+      <div class="zs-step-heading">Was möchtest du verkaufen?</div>
+
+      <div class="zs-cart-container" id="zsCartContainer">
+        <div class="zs-cart-header">
+          <span>📦 Ausgewählte Sets</span>
+          <span class="zs-total-badge" id="zsCartTotal">0,00 €</span>
+        </div>
+        <div class="zs-cart-items" id="zsCartItems"></div>
+        <button type="button" class="zs-btn-secondary" style="margin-top:0; width:100%; font-size:0.8rem; padding:8px; cursor:pointer;" onclick="window.openZsModal()">+ Set per Setnummer hinzufügen</button>
+      </div>
+      <input type="hidden" name="Warenkorb_Ankauf" id="zsCartSummaryInput" value="">
+
+      <div class="zs-group">
+        <label class="zs-label">Oder Kiloware verkaufen?</label>
+        <div class="zs-pricing-radio-grid-kilo">
+          <label class="zs-price-option">
+            <input type="radio" name="Kategorie_Auswahl" value="A: Klassiker (5-8 €/kg)" onchange="window.handleCatChange(this)">
+            <div class="zs-price-card"><span class="zs-price-badge-key">A</span><div class="zs-price-title">Gemischtes LEGO® - Klassiker 5–8 €/kg</div><div class="zs-price-desc">Ab 5 intakten Minifiguren / Tieren pro kg · Bunte Mischung aus Steinen </div></div>
+          </label>
+          <label class="zs-price-option">
+            <input type="radio" name="Kategorie_Auswahl" value="B: Kreativ-Mix (2-4 €/kg)" onchange="window.handleCatChange(this)">
+            <div class="zs-price-card"><span class="zs-price-badge-key">B</span><div class="zs-price-title">Gemischtes LEGO® - Basic 2–4 €/kg</div><div class="zs-price-desc">Überwiegend Basis- & Bausteine · Stärker bespielte Steine · Keine oder sehr wenige Figuren </div></div>
+          </label>
+        </div>
+      </div>
+
+      <div class="zs-group" id="zsWeightGroup">
+        <label class="zs-label">Gewicht (in kg)</label>
+        <input type="number" name="Gewicht_kg" class="zs-input" min="0.5" step="0.5" placeholder="z. B. 6.5">
+      </div>
+
+      <button type="button" class="zs-btn zs-btn-fixed" onclick="window.goToStep(2)">Weiter zu Kontaktdaten →</button>
+    </div>
+
+    <!-- SCHRITT 2: KONTAKTDATEN & ADRESSE -->
+    <div id="zsPart2" class="zs-form-section">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+        <div>
+          <div class="zs-step-indicator">Schritt 2 von 3</div>
+          <div class="zs-step-heading" style="margin-bottom:0;">Deine Kontaktdaten</div>
+        </div>
+        <button type="button" class="zs-btn-secondary" style="margin-top:0; padding: 4px 10px; border-radius: 6px; font-size:0.75rem;" onclick="window.goToStep(1)">← Zurück</button>
+      </div>
+
+      <div class="zs-grid-2">
+        <div class="zs-group"><label class="zs-label">Dein Name</label><input type="text" name="Name" class="zs-input" placeholder="Vor- und Nachname"></div>
+        <div class="zs-group"><label class="zs-label">E-Mail-Adresse</label><input type="email" name="email" class="zs-input" placeholder="deine@email.de"></div>
+      </div>
+      <div class="zs-grid-2">
+        <div class="zs-group"><label class="zs-label">Telefon / WhatsApp</label><input type="text" name="Telefon" class="zs-input" placeholder="0179 1234567"></div>
+        <div class="zs-group"><label class="zs-label">Straße & Hausnummer</label><input type="text" name="Strasse" class="zs-input" placeholder="Musterstraße 12"></div>
+      </div>
+      <div class="zs-grid-2">
+        <div class="zs-group"><label class="zs-label">PLZ</label><input type="text" name="PLZ" class="zs-input" placeholder="83646"></div>
+        <div class="zs-group"><label class="zs-label">Ort</label><input type="text" name="Ort" class="zs-input" placeholder="Bad Tölz"></div>
+      </div>
+
+      <button type="button" class="zs-btn zs-btn-fixed" onclick="window.goToStep(3)">Weiter zur Übergabe & Auszahlung →</button>
+    </div>
+
+    <!-- SCHRITT 3: ÜBERGABE, AUSZAHLUNG & ABSENDEN -->
+    <div id="zsPart3" class="zs-form-section">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+        <div>
+          <div class="zs-step-indicator">Schritt 3 von 3</div>
+          <div class="zs-step-heading" style="margin-bottom:0;">Übergabe & Auszahlung</div>
+        </div>
+        <button type="button" class="zs-btn-secondary" style="margin-top:0; padding: 4px 10px; border-radius: 6px; font-size:0.75rem;" onclick="window.goToStep(2)">← Zurück</button>
+      </div>
+
+      <div class="zs-group">
+        <label class="zs-label">Art der Übergabe</label>
+        <select name="Uebergabeart" class="zs-select">
+          <option value="dhl">📦 DHL-Versand - kostenlos ab 5 kg oder 50 Euro Warenwert</option>
+          <option value="dropoff">🤝 Persönliche Abgabe in Bad Tölz</option>
+          <option value="pickup">🚗 Abholung durch uns im Raum Bad Tölz - kostenlos ab 5 kg oder 50 Euro Warenwert</option>
+        </select>
+      </div>
+
+      <div class="zs-group">
+        <label class="zs-label">Gewünschte Auszahlungsmethode</label>
+        <select name="Auszahlungsart" class="zs-select">
+          <option value="Banküberweisung">Banküberweisung</option>
+          <option value="PayPal">PayPal</option>
+          <option value="Barzahlung bei Übergabe">Barzahlung bei Übergabe</option>
+        </select>
+      </div>
+
+      <div class="zs-group">
+        <label class="zs-label">Auszahlungsdetails (IBAN / PayPal / Bar)</label>
+        <input type="text" name="Auszahlungsdetails" class="zs-input" placeholder="z. B. IBAN oder PayPal-E-Mail">
+      </div>
+
+      <div class="zs-checkbox-group">
+        <input type="checkbox" id="zsAgb" name="AGB_akzeptiert" value="Ja" required>
+        <label for="zsAgb" class="zs-checkbox-label">Ich akzeptiere die <a href="https://www.zwo-stein.de/#section-agb" target="_blank">AGB</a> und Ankaufsbedingungen. *</label>
+      </div>
+
+      <button type="submit" id="zsSubmitBtn" class="zs-btn zs-btn-fixed">Anfrage jetzt absenden →</button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+var zsCart = []; 
+var zsCurrentSearch = {};
+var setQuantity = 1;
+var usedQuantity = 1;
+
+// Funktion für schöne, moderne Popups statt alert()
+function showCustomAlert(title, message, icon = "💡") {
+  document.getElementById('zsAlertTitle').innerText = title;
+  document.getElementById('zsAlertMessage').innerText = message;
+  document.getElementById('zsAlertIcon').innerText = icon;
+  document.getElementById('zsCustomAlert').style.display = 'flex';
+  setTimeout(sendHeightToParent, 100);
+}
+
+function closeCustomAlert() {
+  document.getElementById('zsCustomAlert').style.display = 'none';
+  if(document.activeElement) { document.activeElement.blur(); }
+  setTimeout(sendHeightToParent, 100);
+}
+
+function sendHeightToParent() {
+  var height = document.body.scrollHeight + 80;
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: 'setHeight', height: height }, '*');
+  }
+}
+window.addEventListener('load', sendHeightToParent);
+window.addEventListener('resize', sendHeightToParent);
+setInterval(sendHeightToParent, 300);
+
+window.goToStep = function(step) {
+  if (step === 2) {
+    var hasSets = zsCart.length > 0;
+    var kiloSelected = document.querySelector('input[name="Kategorie_Auswahl"]:checked');
+    if (!hasSets && !kiloSelected) {
+      showCustomAlert("Bitte Auswahl treffen", "Bitte füge entweder mindestens ein Set über die Setnummer hinzu oder wähle eine Kiloware-Option aus.", "⚠️");
+      return;
+    }
+  }
+
+  ['zsPart1', 'zsPart2', 'zsPart3'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+
+  document.getElementById('zsPart' + step).classList.add('active');
+  setTimeout(sendHeightToParent, 100);
+};
+
+window.handleCatChange = function(radio) {
+  setTimeout(sendHeightToParent, 100);
+};
+
+window.openZsModal = function() { 
+  var modal = document.getElementById('zsSetModal');
+  modal.style.display = 'flex'; 
+  showZsStep(1); 
+  setTimeout(sendHeightToParent, 100); 
+};
+
+window.closeZsModal = function() { 
+  document.getElementById('zsSetModal').style.display = 'none'; 
+  if(document.activeElement) { document.activeElement.blur(); }
+  setTimeout(sendHeightToParent, 100); 
+};
+
+function showZsStep(n) { 
+  ['zsStep1', 'zsStep2', 'zsStep3', 'zsStep3Used', 'zsStep4'].forEach(id => {
+    var el = document.getElementById(id);
+    if(el) el.classList.remove('active');
+  });
+  var target = document.getElementById(n === 'USED_DETAILS' ? 'zsStep3Used' : 'zsStep' + n);
+  if(target) target.classList.add('active');
+  setTimeout(sendHeightToParent, 100);
+}
+
+window.searchLegoSet = async function() {
+  var setNo = document.getElementById('zsSetNumberInput').value.trim();
+  if (!setNo) {
+    showCustomAlert("Fehlende Eingabe", "Bitte gib eine gültige LEGO® Setnummer ein.", "⚠️");
+    return;
+  }
+  
+  document.getElementById('zsSetNumberInput').blur();
+  document.getElementById('zsSearchLoader').style.display = 'block';
+
+  try {
+    var response = await fetch(`/.netlify/functions/calculate-price?set=${setNo}`);
+    var data = await response.json();
+    
+    document.getElementById('zsSearchLoader').style.display = 'none';
+
+    if (!response.ok || data.error) {
+      showCustomAlert("Set nicht gefunden", data.error || "Beim Abrufen der Preisdaten ist ein Fehler aufgetreten.", "❌");
+      return;
+    }
+
+    var allNewValues = Object.values(data.prices.new);
+    var allUsedValues = Object.values(data.prices.used);
+    var minPrice = Math.min(...allUsedValues);
+    var maxPrice = Math.max(...allNewValues);
+
+    var estimatedMarketValue = maxPrice / 0.50;
+    if (estimatedMarketValue < 50) {
+      showCustomAlert("Mindestwert nicht erreicht", "Dieses Set liegt unter dem Mindestwarenwert von 50 € und kann leider nicht angekauft werden.", "ℹ️");
+      return;
+    }
+
+    var setName = data.name ? data.name : "Set " + setNo;
+
+    zsCurrentSearch = {
+      setNo: setNo,
+      title: setName,
+      prices: data.prices
+    };
+
+    document.getElementById('zsFoundSetName').innerText = setName;
+    document.getElementById('zsRangeDisplay').innerText = 
+      minPrice.toLocaleString('de-DE', {style: 'currency', currency: 'EUR'}) + 
+      " – " + 
+      maxPrice.toLocaleString('de-DE', {style: 'currency', currency: 'EUR'});
+      
+    showZsStep(2);
+
+  } catch (error) {
+    document.getElementById('zsSearchLoader').style.display = 'none';
+    showCustomAlert("Netzwerkfehler", "Preisdaten konnten aktuell nicht geladen werden. Bitte versuche es später noch einmal.", "❌");
+    console.error(error);
+  }
+};
+
+window.selectCondition = function(cond) {
+  zsCurrentSearch.condition = cond;
+  if (cond === 'NEW') {
+    setQuantity = 1;
+    document.getElementById('zsSetQuantity').innerText = setQuantity;
+    updateNewCalc();
+    showZsStep(3);
+  } else {
+    usedQuantity = 1;
+    document.getElementById('zsUsedQuantity').innerText = usedQuantity;
+    document.getElementById('chkManual').checked = true;
+    document.getElementById('chkBox').checked = false;
+    updateUsedCalc();
+    showZsStep('USED_DETAILS');
+  }
+};
+
+window.updateNewCalc = function() {
+  if (!zsCurrentSearch.prices) return;
+  var selectedKey = document.querySelector('input[name="newCondition"]:checked').value;
+  var singlePrice = zsCurrentSearch.prices.new[selectedKey] || 0;
+  var totalPrice = singlePrice * setQuantity;
+  document.getElementById('zsLivePricePreview').innerText = totalPrice.toLocaleString('de-DE', {style: 'currency', currency: 'EUR'});
+};
+
+window.adjustQuantity = function(change) {
+  setQuantity += change;
+  if (setQuantity < 1) setQuantity = 1;
+  document.getElementById('zsSetQuantity').innerText = setQuantity;
+  updateNewCalc();
+};
+
+window.addCurrentSetToCart = function() {
+  var radioEl = document.querySelector('input[name="newCondition"]:checked');
+  var selectedKey = radioEl.value;
+  var singlePrice = zsCurrentSearch.prices.new[selectedKey];
+  var totalPrice = singlePrice * setQuantity;
+  
+  var itemTitle = "LEGO® " + zsCurrentSearch.title;
+  var itemDetails = "Neu (" + radioEl.parentElement.innerText.trim() + ") [" + setQuantity + " Stk.]";
+
+  zsCart.push({ title: itemTitle, details: itemDetails, price: parseFloat(totalPrice.toFixed(2)) });
+  renderZsCart();
+  
+  document.getElementById('zsFinalSetTitle').innerText = itemTitle + " - " + itemDetails;
+  document.getElementById('zsFinalPriceDisplay').innerText = totalPrice.toLocaleString('de-DE', {style: 'currency', currency: 'EUR'});
+  showZsStep(4);
+};
+
+window.updateUsedCalc = function() {
+  if (!zsCurrentSearch.prices) return;
+  var grade = document.querySelector('input[name="usedGrade"]:checked').value; 
+  var hasManual = document.getElementById('chkManual').checked;
+  var hasBox = document.getElementById('chkBox').checked;
+  
+  var key = "";
+  if (hasManual && hasBox) key = "with_instructions_and_box_" + grade;
+  else if (hasManual && !hasBox) key = "with_instructions_no_box_" + grade;
+  else if (!hasManual && hasBox) key = "no_instructions_with_box_" + grade;
+  else key = "no_instructions_no_box_" + grade;
+
+  var singlePrice = zsCurrentSearch.prices.used[key] || 0;
+  var totalPrice = singlePrice * usedQuantity;
+  
+  document.getElementById('zsLiveUsedPricePreview').innerText = totalPrice.toLocaleString('de-DE', {style: 'currency', currency: 'EUR'});
+};
+
+window.adjustUsedQuantity = function(change) {
+  usedQuantity += change;
+  if (usedQuantity < 1) usedQuantity = 1;
+  document.getElementById('zsUsedQuantity').innerText = usedQuantity;
+  updateUsedCalc();
+};
+
+window.addUsedSetToCart = function() {
+  var gradeEl = document.querySelector('input[name="usedGrade"]:checked');
+  var grade = gradeEl.value;
+  var hasManual = document.getElementById('chkManual').checked;
+  var hasBox = document.getElementById('chkBox').checked;
+  
+  var key = "";
+  if (hasManual && hasBox) key = "with_instructions_and_box_" + grade;
+  else if (hasManual && !hasBox) key = "with_instructions_no_box_" + grade;
+  else if (!hasManual && hasBox) key = "no_instructions_with_box_" + grade;
+  else key = "no_instructions_no_box_" + grade;
+
+  var singlePrice = zsCurrentSearch.prices.used[key];
+  var totalPrice = singlePrice * usedQuantity;
+  
+  var manualText = hasManual ? "mit Anleitung" : "ohne Anleitung";
+  var boxText = hasBox ? "mit OVP" : "ohne OVP";
+  
+  var itemTitle = "LEGO® " + zsCurrentSearch.title;
+  var itemDetails = "Gebraucht (" + gradeEl.parentElement.innerText.trim() + ", " + manualText + ", " + boxText + ") [" + usedQuantity + " Stk.]";
+
+  zsCart.push({ title: itemTitle, details: itemDetails, price: parseFloat(totalPrice.toFixed(2)) });
+  renderZsCart();
+
+  document.getElementById('zsFinalSetTitle').innerText = itemTitle + " - " + itemDetails;
+  document.getElementById('zsFinalPriceDisplay').innerText = totalPrice.toLocaleString('de-DE', {style: 'currency', currency: 'EUR'});
+  showZsStep(4);
+};
+
+window.removeZsCartItem = function(i) { zsCart.splice(i, 1); renderZsCart(); };
+
+function renderZsCart() {
+  var container = document.getElementById('zsCartItems'); container.innerHTML = ""; var total = 0; var summary = [];
+  zsCart.forEach((item, idx) => {
+    total += item.price; 
+    summary.push(item.title + " " + item.details + " -> " + item.price.toFixed(2) + " €");
+    
+    container.innerHTML += `
+      <div class="zs-cart-item">
+        <div class="zs-cart-item-info">
+          <div class="zs-cart-item-title">${item.title}</div>
+          <div class="zs-cart-item-details">${item.details}</div>
+        </div>
+        <div class="zs-cart-item-right">
+          <span class="zs-cart-item-price">${item.price.toLocaleString('de-DE', {style: 'currency', currency: 'EUR'})}</span>
+          <button type="button" class="zs-remove-btn" onclick="window.removeZsCartItem(${idx})">&times;</button>
+        </div>
+      </div>`;
+  });
+  document.getElementById('zsCartTotal').innerText = total.toLocaleString('de-DE', {style: 'currency', currency: 'EUR'});
+  document.getElementById('zsCartSummaryInput').value = summary.join(" | ") + " | GESAMT-SETS: " + total.toFixed(2) + " €";
+  setTimeout(sendHeightToParent, 100);
+}
+
+window.resetZsForm = function() {
+  var form = document.getElementById('zsForm');
+  var successBox = document.getElementById('zsSuccessBox');
+  window.goToStep(1);
+  zsCart = [];
+  renderZsCart();
+  if (form) { form.reset(); form.classList.remove('zs-form-submitted'); form.style.display = 'block'; }
+  if (successBox) successBox.style.display = 'none';
+  setTimeout(sendHeightToParent, 100);
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+  var form = document.getElementById('zsForm');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Regelprüfung für kostenlosen Versand / Abholung:
+      var cartTotal = zsCart.reduce((sum, item) => sum + item.price, 0);
+      var weightInput = document.querySelector('input[name="Gewicht_kg"]');
+      var weight = weightInput ? parseFloat(weightInput.value) || 0 : 0;
+      var deliveryMethod = document.querySelector('select[name="Uebergabeart"]').value;
+
+      if ((deliveryMethod === 'dhl' || deliveryMethod === 'pickup') && cartTotal < 50 && weight < 5) {
+        showCustomAlert(
+          "Mindestwert für Gratis-Versand", 
+          "Kostenloser DHL-Versand oder Abholung vor Ort ist erst ab 50 € Warenwert oder 5 kg möglich. Du kannst die Ware aber gerne direkt bei uns in Bad Tölz abgeben oder nach Rücksprache auf eigene Kosten zusenden!", 
+          "📦"
+        );
+        window.goToStep(3);
+        return;
+      }
+
+      // AGB Validierung prüfen
+      var agbCheckbox = document.getElementById('zsAgb');
+      if (agbCheckbox && !agbCheckbox.checked) {
+        showCustomAlert("AGB erforderlich", "Bitte akzeptiere unsere AGB und Ankaufsbedingungen, um fortzufahren.", "⚠️");
+        window.goToStep(3);
+        agbCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      var submitBtn = document.getElementById('zsSubmitBtn');
+      var successBox = document.getElementById('zsSuccessBox');
+      submitBtn.innerText = 'Wird gesendet...';
+      submitBtn.disabled = true;
+
+      var data = new FormData(form);
+      fetch(form.action, {
+        method: 'POST', body: data, headers: { 'Accept': 'application/json' }
+      }).then(res => {
+        if (res.ok) {
+          form.style.display = 'none';
+          if(successBox) successBox.style.display = 'block';
+          setTimeout(sendHeightToParent, 100);
+        } else {
+          showCustomAlert("Fehler beim Senden", "Es gab ein Problem beim Übermitteln deiner Anfrage. Bitte versuche es erneut.", "❌");
+          submitBtn.innerText = 'Anfrage jetzt absenden →';
+          submitBtn.disabled = false;
+        }
+      }).catch(() => {
+        showCustomAlert("Netzwerkfehler", "Es konnte keine Verbindung zum Server hergestellt werden. Bitte überprüfe deine Internetverbindung.", "❌");
+        submitBtn.innerText = 'Anfrage jetzt absenden →';
+        submitBtn.disabled = false;
+      });
+    });
+  }
+});
+</script>
+</body>
+</html>

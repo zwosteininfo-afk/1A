@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZWO-STEIN Admin Massen-Ankauf & Kundenverwaltung</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fbf8f3',
+                            100: '#f5eee3',
+                            200: '#ebd9c2',
+                            500: '#b48a51',
+                            600: '#9c7541',
+                            700: '#7e5c32',
+                            800: '#63472b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @media print {
+            body { background: white !important; color: black !important; padding: 0 !important; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .print-card { border: none !important; shadow: none !important; padding: 0 !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen p-3 md:p-8">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- HEADER & MODE TOGGLE & SAVED DEALS BANNER -->
+        <header class="bg-slate-900 text-white p-5 md:p-6 rounded-2xl shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
+            <div class="flex items-center gap-3">
+                <div class="bg-brand-500 text-white p-3 rounded-xl text-2xl font-black">
+                    <i class="fa-solid fa-cubes"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold tracking-tight">ZWO-STEIN</h1>
+                    <p class="text-slate-400 text-xs md:text-sm font-medium">Massen-Ankauf & Kundenakte-Verwaltung</p>
+                </div>
+            </div>
+
+            <!-- ACTION BUTTONS & MAIN SWITCHER -->
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                <!-- SAVE / LOAD CUSTOMER ACCOUNTS -->
+                <button type="button" onclick="saveCurrentDeal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Akte Speichern</span>
+                </button>
+
+                <button type="button" onclick="openSavedDealsModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm relative">
+                    <i class="fa-solid fa-folder-open text-brand-500"></i>
+                    <span>Kundenakten</span>
+                    <span id="savedDealsCountBadge" class="bg-brand-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-extrabold">0</span>
+                </button>
+
+                <!-- MAIN VIEW SWITCHER -->
+                <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700/80">
+                    <button type="button" id="btnModeCalc" onclick="switchMainMode('calc')" class="px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-brand-500 text-white shadow-sm">
+                        <i class="fa-solid fa-calculator"></i>
+                        <span>Kalkulation</span>
+                    </button>
+                    <button type="button" id="btnModeCheck" onclick="switchMainMode('check')" class="px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-list-check"></i>
+                        <span>Vor-Ort Prüf-Modus</span>
+                        <span id="checkBadge" class="bg-brand-500/20 text-brand-300 text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- CURRENTLY ACTIVE CUSTOMER BANNER -->
+        <div id="activeDealBanner" class="bg-slate-800 text-slate-300 px-5 py-3 rounded-xl border border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 text-xs font-medium no-print">
+            <div class="flex items-center gap-2">
+                <span id="dealStatusBadge" class="bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded text-[11px]">Ungespeichert</span>
+                <span class="font-bold text-white text-sm" id="bannerCustName">Neuer Ankauf (Unbenannt)</span>
+                <span class="text-slate-500" id="bannerDealId"></span>
+            </div>
+            <div class="flex items-center gap-3 text-slate-400">
+                <span id="bannerLastSaved"><i class="fa-regular fa-clock mr-1"></i> Nicht gespeichert</span>
+                <button type="button" onclick="createNewDeal()" class="text-brand-300 hover:text-brand-200 font-bold underline"><i class="fa-solid fa-plus mr-1"></i>Neuen Ankauf anlegen</button>
+            </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- MODE 1: KALKULATION & IMPORT -->
+        <!-- ================================================================= -->
+        <div id="viewCalcMode" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- LEFT COLUMN: IMPORT, CUSTOMER & LOGISTICS (5 Cols) -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- KUNDEN-STAMMDATEN (INTERN) -->
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
+                        <span class="bg-brand-100 text-brand-700 font-bold px-2.5 py-0.5 rounded-lg text-xs">A</span>
+                        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Verkäufer / Kundendaten</h2>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Name / Ansprechpartner:</label>
+                            <input type="text" id="custName" placeholder="Max Mustermann" oninput="syncCustomerData()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Telefon / Mobil:</label>
+                                <input type="text" id="custPhone" placeholder="0171 / 1234567" oninput="syncCustomerData()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Ort / Ortsteil:</label>
+                                <input type="text" id="custLocation" placeholder="Bad Tölz" oninput="syncCustomerData()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Interne Anmerkung (z.B. Kleinanzeigen ID, eBay):</label>
+                            <input type="text" id="custNotes" placeholder="Termin Samstag 14:00 Uhr" oninput="syncCustomerData()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MULTI-LEVEL CONDITION BATCH IMPORT -->
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                        <span class="bg-brand-100 text-brand-700 font-bold px-2.5 py-0.5 rounded-lg text-xs">B</span>
+                        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Massen-Import & Standard-Zustand</h2>
+                    </div>
+
+                    <!-- REITER LEVEL 1: CATEGORY SELECTION -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">1. Kategorie wählen</label>
+                        <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                            <button type="button" id="tabNew" onclick="selectImportCategory('new')" class="py-2 text-xs md:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-white text-slate-900 shadow-sm">
+                                <i class="fa-solid fa-box-open text-emerald-600"></i> Neuware
+                            </button>
+                            <button type="button" id="tabUsed" onclick="selectImportCategory('used')" class="py-2 text-xs md:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900">
+                                <i class="fa-solid fa-recycle text-amber-600"></i> Gebraucht
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- REITER LEVEL 2: CONDITION & WEAR -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">2. Zustand & Ausstattung</label>
+                        
+                        <!-- NEW GOODS OPTIONS -->
+                        <div id="importOptionsNew" class="space-y-2">
+                            <select id="importNewSub" onchange="updateImportConditionKey()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs md:text-sm rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium">
+                                <option value="sealed_light_wear">OVP Fabrikneu / Versiegelt (Leichte Lagerspuren)</option>
+                                <option value="sealed_heavy_wear">OVP Versiegelt (Deutliche Dellen / Lagerspuren)</option>
+                                <option value="sealed_damaged">OVP Versiegelt (Beschädigung / Loch)</option>
+                                <option value="opened_bags_light_wear">OVP Geöffnet, Tüten noch verschlossen (Leicht)</option>
+                                <option value="opened_bags_heavy_wear">OVP Geöffnet, Tüten zu (Starke Lagerspuren)</option>
+                                <option value="opened_bags_damaged">OVP Geöffnet, Tüten zu (Karton beschädigt)</option>
+                            </select>
+                        </div>
+
+                        <!-- USED GOODS OPTIONS -->
+                        <div id="importOptionsUsed" class="space-y-3 hidden">
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">Verschleißgrad der Steine/Teile:</label>
+                                <select id="importUsedWear" onchange="updateImportConditionKey()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs md:text-sm rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium">
+                                    <option value="light">Sehr gut / Leicht bespielt (Kaum Kratzer)</option>
+                                    <option value="medium">Mittel bespielt (Normale Gebrauchsspuren)</option>
+                                    <option value="heavy">Stark bespielt / Verfärbungen / Fehlteile-Risiko</option>
+                                </select>
+                            </div>
+
+                            <!-- LEVEL 3: EXTRAS (ANLEITUNG & OVP) -->
+                            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 space-y-2">
+                                <span class="block text-xs font-semibold text-slate-600">3. Lieferumfang / Extras:</span>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer bg-white p-2 rounded-lg border border-slate-200 hover:border-brand-500">
+                                        <input type="checkbox" id="importHasInstructions" checked onchange="updateImportConditionKey()" class="w-4 h-4 text-brand-500 rounded border-slate-300 focus:ring-brand-500">
+                                        <span><i class="fa-solid fa-book text-slate-400 mr-1"></i> Anleitung</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer bg-white p-2 rounded-lg border border-slate-200 hover:border-brand-500">
+                                        <input type="checkbox" id="importHasBox" checked onchange="updateImportConditionKey()" class="w-4 h-4 text-brand-500 rounded border-slate-300 focus:ring-brand-500">
+                                        <span><i class="fa-solid fa-box text-slate-400 mr-1"></i> Karton (OVP)</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SET INPUT TEXTAREA -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Set-Nummern eingeben</label>
+                        <textarea id="batchSetInput" placeholder="Set-Nummern hier einfügen...&#10;Z.B. 75192, 10294, 21330" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono resize-y min-h-[80px]"></textarea>
+                    </div>
+
+                    <button type="button" onclick="processBatchImport()" class="w-full bg-brand-500 hover:bg-brand-600 active:bg-brand-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-plus-circle"></i>
+                        <span>Sets abfragen & hinzufügen</span>
+                    </button>
+
+                    <div id="importLoader" class="hidden mt-3 text-center text-xs font-semibold text-brand-600 animate-pulse flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Rufe BrickLink-Daten ab...
+                    </div>
+                </div>
+
+                <!-- LOGISTICS & DEDUCTIONS -->
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4">
+                    <div class="flex items-center gap-2 pb-2 border-b border-slate-100">
+                        <span class="bg-brand-100 text-brand-700 font-bold px-2.5 py-0.5 rounded-lg text-xs">C</span>
+                        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Logistik & Abzüge</h2>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Anfahrtsstrecke (Einfach in km):</label>
+                            <div class="relative">
+                                <input type="number" id="driveKm" value="0" min="0" oninput="calculateFinalOffer()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pl-3 pr-12 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <span class="absolute right-3 top-2.5 text-xs font-bold text-slate-400">km</span>
+                            </div>
+                            <span class="text-[11px] text-slate-400 mt-1 block">Rechnet Hin- & Rückfahrt mit 0,30 € / km</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">DHL Versandkosten-Übernahme:</label>
+                            <select id="shippingCostSelect" onchange="calculateFinalOffer()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <option value="0">Kein Versand (Abholung vor Ort)</option>
+                                <option value="6.19">DHL Paket bis 2 kg (6,19 €)</option>
+                                <option value="7.69" selected>DHL Paket bis 5 kg (7,69 €)</option>
+                                <option value="10.49">DHL Paket bis 10 kg (10,49 €)</option>
+                                <option value="18.99">DHL Paket bis 20 kg (18,99 €)</option>
+                                <option value="23.99">DHL Paket bis 31,5 kg (23,99 €)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Sicherheits- / Margenabzug (%):</label>
+                            <div class="relative">
+                                <input type="number" id="riskMarginPercent" value="0" min="0" max="50" oninput="calculateFinalOffer()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pl-3 pr-8 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <span class="absolute right-3 top-2.5 text-xs font-bold text-slate-400">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: TABLE & FINAL OFFER (7 Cols) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- POSITIONS TABLE -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full justify-between">
+                    <div>
+                        <div class="p-5 pb-3 border-b border-slate-100 flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-brand-100 text-brand-700 font-bold px-2.5 py-0.5 rounded-lg text-xs">D</span>
+                                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Kalkulierte Positionen</h2>
+                            </div>
+                            <button onclick="clearAllCart()" class="text-xs font-semibold text-rose-500 hover:text-rose-700 transition">
+                                <i class="fa-solid fa-trash-can mr-1"></i> Zurücksetzen
+                            </button>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 text-[11px] uppercase font-bold text-slate-400 border-b border-slate-100">
+                                        <th class="py-3 px-4">Set</th>
+                                        <th class="py-3 px-4">Kondition</th>
+                                        <th class="py-3 px-2 text-center">Menge</th>
+                                        <th class="py-3 px-4 text-right">Einzel</th>
+                                        <th class="py-3 px-4 text-right">Gesamt</th>
+                                        <th class="py-3 px-2 text-center"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cartTableBody" class="divide-y divide-slate-100 text-sm font-medium">
+                                    <tr id="emptyRow">
+                                        <td colspan="6" class="py-12 text-center text-slate-400">
+                                            <i class="fa-solid fa-box-open text-4xl mb-2 block opacity-30"></i>
+                                            Noch keine Sets hinzugefügt.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- SUMMARY BOX -->
+                    <div class="p-5 bg-slate-900 text-white rounded-b-2xl mt-6">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 border-b border-slate-800 pb-2">Kalkulation</h3>
+                        
+                        <div class="space-y-1.5 text-sm font-medium text-slate-300">
+                            <div class="flex justify-between">
+                                <span>Warenwert (Brutto):</span>
+                                <span id="summaryRawTotal" class="font-bold text-white">0,00 €</span>
+                            </div>
+                            <div class="flex justify-between text-rose-400 text-xs">
+                                <span>- Anfahrt (<span id="summaryKm">0</span> km × 0,30 €):</span>
+                                <span id="summaryDriveCost">-0,00 €</span>
+                            </div>
+                            <div class="flex justify-between text-rose-400 text-xs">
+                                <span>- DHL Versand:</span>
+                                <span id="summaryShippingCost">-0,00 €</span>
+                            </div>
+                            <div class="flex justify-between text-rose-400 text-xs">
+                                <span>- Risiko- / Marge:</span>
+                                <span id="summaryRiskCost">-0,00 €</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center">
+                            <div>
+                                <span class="block text-xs text-slate-400 uppercase font-bold tracking-wider">Auszahlungsangebot</span>
+                                <span class="text-[11px] text-emerald-400 font-semibold"><i class="fa-solid fa-check-circle mr-1"></i> Bereit für Vor-Ort Prüfung</span>
+                            </div>
+                            <div id="summaryFinalOffer" class="text-2xl md:text-3xl font-black text-emerald-400">
+                                0,00 €
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 mt-4">
+                            <button type="button" onclick="saveCurrentDeal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow transition flex items-center justify-center gap-2 text-xs md:text-sm">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                                <span>Speichern</span>
+                            </button>
+                            <button type="button" onclick="switchMainMode('check')" class="bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 rounded-xl shadow transition flex items-center justify-center gap-2 text-xs md:text-sm">
+                                <span>Prüf-Modus</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- MODE 2: MOBILE PRÜF- & ABHOL-MODUS (CHECKLISTE) -->
+        <!-- ================================================================= -->
+        <div id="viewCheckMode" class="hidden space-y-6">
+
+            <!-- CUSTOMER INFO BANNER & ACTIONS -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full"><i class="fa-solid fa-location-dot mr-1"></i> Vor-Ort Prüfung</span>
+                        <h2 id="checkCustName" class="font-bold text-slate-900 text-lg">Kunde: Unbekannt</h2>
+                    </div>
+                    <p class="text-xs text-slate-500 font-medium">
+                        <span id="checkCustPhone"><i class="fa-solid fa-phone mr-1"></i> Keine Nummer</span> | 
+                        <span id="checkCustLoc"><i class="fa-solid fa-map-pin mr-1"></i> Kein Ort</span>
+                    </p>
+                    <p id="checkCustNotes" class="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200/60 inline-block font-medium">Notiz: Keine</p>
+                </div>
+
+                <div class="flex gap-2 w-full md:w-auto no-print">
+                    <button type="button" onclick="saveCurrentDeal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Speichern</span>
+                    </button>
+                    <button type="button" onclick="markCurrentDealComplete()" class="bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold px-3 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Abschließen</span>
+                    </button>
+                    <button type="button" onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-print"></i>
+                        <span>Drucken</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- CHECKLIST ITEMS CONTAINER -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Set-Prüfliste (<span id="checkPassedCount">0</span>/<span id="checkTotalCount">0</span> abgehakt)</h3>
+                    <button onclick="resetChecklistStatus()" class="text-xs font-semibold text-slate-500 hover:text-slate-800 transition">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> Abhak-Status zurücksetzen
+                    </button>
+                </div>
+
+                <div id="checklistContainer" class="divide-y divide-slate-100">
+                    <!-- Dynamic Checklist Rows Rendered Here -->
+                </div>
+            </div>
+
+            <!-- ON-SITE LIVE ADJUSTMENT SUMMARY -->
+            <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-lg space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800 pb-2">Vor-Ort Auszahlungs-Abrechnung</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+                        <span class="text-xs text-slate-400 block mb-1">Kalkulierter Auszahlungsbetrag:</span>
+                        <span id="checkCalcOffer" class="text-lg font-bold text-slate-200">0,00 €</span>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+                        <span class="text-xs text-slate-400 block mb-1">Vor-Ort Abweichungen / Stornierungen:</span>
+                        <span id="checkDiffOffer" class="text-lg font-bold text-rose-400">0,00 €</span>
+                    </div>
+                    <div class="bg-emerald-950/60 p-3 rounded-xl border border-emerald-500/40">
+                        <span class="text-xs text-emerald-400 block mb-1 font-bold uppercase">Tatsächliche Auszahlung Vor Ort:</span>
+                        <span id="checkFinalOffer" class="text-2xl font-black text-emerald-400">0,00 €</span>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-400">
+                    <div>
+                        <p><i class="fa-solid fa-signature mr-1"></i> Mit der Auszahlung bestätigt der Verkäufer den ordnungsgemäßen Ankauf der abgehakten Artikel.</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <span class="inline-flex items-center text-emerald-400 font-semibold"><i class="fa-solid fa-check-double mr-1"></i> Alle Angaben geprüft</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- SAVED CUSTOMER DEALS MODAL -->
+    <!-- ================================================================= -->
+    <div id="savedDealsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-folder-open text-brand-500 text-xl"></i>
+                    <h2 class="text-base font-extrabold">Gespeicherte Kundenakten & Ankäufe</h2>
+                </div>
+                <button onclick="closeSavedDealsModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3 text-xs">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="dealSearchInput" oninput="renderSavedDealsList()" placeholder="Suchen nach Name, Ort..." class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 w-48 md:w-64">
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="exportDealsJson()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-2.5 py-1.5 rounded-lg transition"><i class="fa-solid fa-download mr-1"></i> Backup Export (JSON)</button>
+                    <label class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer">
+                        <i class="fa-solid fa-upload mr-1"></i> Import
+                        <input type="file" id="importJsonInput" accept=".json" onchange="importDealsJson(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <div class="p-4 overflow-y-auto flex-1 space-y-3" id="savedDealsListContainer">
+                <!-- Dynamic Deals List -->
+            </div>
+
+            <div class="p-4 bg-slate-100 border-t border-slate-200 flex justify-between items-center text-xs">
+                <span id="savedDealsTotalInfo" class="text-slate-500 font-semibold">0 Akten vorhanden</span>
+                <button onclick="closeSavedDealsModal()" class="bg-slate-800 text-white font-bold px-4 py-2 rounded-xl">Schließen</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // STORAGE KEY
+        const STORAGE_KEY = 'zwostein_ankauf_deals_v1';
+
+        // BACKEND BASE FACTORS
+        const BASE_FACTORS = {
+            new: {
+                sealed_light_wear: 1.00,
+                sealed_heavy_wear: 0.88,
+                sealed_damaged: 0.75,
+                opened_bags_light_wear: 0.82,
+                opened_bags_heavy_wear: 0.72,
+                opened_bags_damaged: 0.62
+            },
+            used: {
+                with_instructions_and_box_light: 0.72,
+                with_instructions_and_box_medium: 0.62,
+                with_instructions_and_box_heavy: 0.48,
+                
+                with_instructions_no_box_light: 0.64,
+                with_instructions_no_box_medium: 0.54,
+                with_instructions_no_box_heavy: 0.40,
+
+                no_instructions_with_box_light: 0.60,
+                no_instructions_with_box_medium: 0.50,
+                no_instructions_with_box_heavy: 0.36,
+
+                no_instructions_no_box_light: 0.52,
+                no_instructions_no_box_medium: 0.42,
+                no_instructions_no_box_heavy: 0.28
+            }
+        };
+
+        const CONDITION_LABELS = {
+            sealed_light_wear: "Neu: OVP versiegelt (Leichte Lagerspuren)",
+            sealed_heavy_wear: "Neu: OVP versiegelt (Dellen/Kratzer)",
+            sealed_damaged: "Neu: OVP versiegelt (Beschädigt)",
+            opened_bags_light_wear: "Neu: OVP auf, Tüten zu (Leicht)",
+            opened_bags_heavy_wear: "Neu: OVP auf, Tüten zu (Stark)",
+            opened_bags_damaged: "Neu: OVP auf, Tüten zu (Beschädigt)",
+            
+            with_instructions_and_box_light: "Gebraucht: Anleitung + OVP (Sehr gut)",
+            with_instructions_and_box_medium: "Gebraucht: Anleitung + OVP (Mittel)",
+            with_instructions_and_box_heavy: "Gebraucht: Anleitung + OVP (Stark)",
+
+            with_instructions_no_box_light: "Gebraucht: Mit Anleitung, ohne OVP (Sehr gut)",
+            with_instructions_no_box_medium: "Gebraucht: Mit Anleitung, ohne OVP (Mittel)",
+            with_instructions_no_box_heavy: "Gebraucht: Mit Anleitung, ohne OVP (Stark)",
+
+            no_instructions_with_box_light: "Gebraucht: Ohne Anleitung, mit OVP (Sehr gut)",
+            no_instructions_with_box_medium: "Gebraucht: Ohne Anleitung, mit OVP (Mittel)",
+            no_instructions_with_box_heavy: "Gebraucht: Ohne Anleitung, mit OVP (Stark)",
+
+            no_instructions_no_box_light: "Gebraucht: Loose (Sehr gut)",
+            no_instructions_no_box_medium: "Gebraucht: Loose (Mittel)",
+            no_instructions_no_box_heavy: "Gebraucht: Loose (Stark / Fehlteile)"
+        };
+
+        // STATE
+        let currentDealId = null;
+        let dealStatus = 'draft'; // 'draft', 'saved', 'completed'
+        let lastSavedAt = null;
+        let activeImportCategory = 'new';
+        let activeImportConditionKey = 'sealed_light_wear';
+        let cart = [];
+        let customerData = { name: '', phone: '', location: '', notes: '' };
+
+        window.onload = function() {
+            createNewDeal(false);
+            updateSavedDealsBadge();
+        };
+
+        function createNewDeal(confirmPrompt = true) {
+            if (confirmPrompt && cart.length > 0) {
+                if (!confirm("Möchtest du wirklich einen neuen Ankauf starten? Ungespeicherte Änderungen gehen verloren.")) return;
+            }
+
+            currentDealId = 'ZS-' + Date.now().toString().slice(-6);
+            dealStatus = 'draft';
+            lastSavedAt = null;
+            cart = [];
+            customerData = { name: '', phone: '', location: '', notes: '' };
+
+            document.getElementById('custName').value = '';
+            document.getElementById('custPhone').value = '';
+            document.getElementById('custLocation').value = '';
+            document.getElementById('custNotes').value = '';
+            document.getElementById('driveKm').value = '0';
+            document.getElementById('shippingCostSelect').value = '7.69';
+            document.getElementById('riskMarginPercent').value = '0';
+
+            syncCustomerData();
+            updateImportConditionKey();
+            renderCartTable();
+            updateBannerInfo();
+        }
+
+        // MODE SWITCHER
+        function switchMainMode(mode) {
+            const btnCalc = document.getElementById('btnModeCalc');
+            const btnCheck = document.getElementById('btnModeCheck');
+            const viewCalc = document.getElementById('viewCalcMode');
+            const viewCheck = document.getElementById('viewCheckMode');
+
+            if (mode === 'calc') {
+                viewCalc.classList.remove('hidden');
+                viewCheck.classList.add('hidden');
+                btnCalc.className = "px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-brand-500 text-white shadow-sm";
+                btnCheck.className = "px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-white";
+            } else {
+                viewCalc.classList.add('hidden');
+                viewCheck.classList.remove('hidden');
+                btnCheck.className = "px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-brand-500 text-white shadow-sm";
+                btnCalc.className = "px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-white";
+                renderChecklist();
+            }
+        }
+
+        // STAMMDATEN SYNC
+        function syncCustomerData() {
+            customerData.name = document.getElementById('custName').value.trim();
+            customerData.phone = document.getElementById('custPhone').value.trim();
+            customerData.location = document.getElementById('custLocation').value.trim();
+            customerData.notes = document.getElementById('custNotes').value.trim();
+
+            document.getElementById('checkCustName').innerText = "Kunde: " + (customerData.name || "Unbekannt");
+            document.getElementById('checkCustPhone').innerHTML = `<i class="fa-solid fa-phone mr-1"></i> ` + (customerData.phone || "Keine Nummer");
+            document.getElementById('checkCustLoc').innerHTML = `<i class="fa-solid fa-map-pin mr-1"></i> ` + (customerData.location || "Kein Ort");
+            document.getElementById('checkCustNotes').innerText = "Notiz: " + (customerData.notes || "Keine");
+
+            updateBannerInfo();
+        }
+
+        function updateBannerInfo() {
+            document.getElementById('bannerCustName').innerText = customerData.name ? `Akte: ${customerData.name}` : "Neuer Ankauf (Unbenannt)";
+            document.getElementById('bannerDealId').innerText = `[${currentDealId}]`;
+
+            const badge = document.getElementById('dealStatusBadge');
+            if (dealStatus === 'completed') {
+                badge.className = "bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded text-[11px]";
+                badge.innerText = "Abgeschlossen";
+            } else if (dealStatus === 'saved') {
+                badge.className = "bg-blue-500/20 text-blue-300 font-bold px-2 py-0.5 rounded text-[11px]";
+                badge.innerText = "Gespeichert";
+            } else {
+                badge.className = "bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded text-[11px]";
+                badge.innerText = "Entwurf";
+            }
+
+            document.getElementById('bannerLastSaved').innerHTML = lastSavedAt 
+                ? `<i class="fa-regular fa-clock mr-1"></i> Gespeichert: ${lastSavedAt}`
+                : `<i class="fa-regular fa-clock mr-1"></i> Nicht gespeichert`;
+        }
+
+        // CATEGORY SWITCH
+        function selectImportCategory(cat) {
+            activeImportCategory = cat;
+            const tabNew = document.getElementById('tabNew');
+            const tabUsed = document.getElementById('tabUsed');
+            const optsNew = document.getElementById('importOptionsNew');
+            const optsUsed = document.getElementById('importOptionsUsed');
+
+            if(cat === 'new') {
+                tabNew.className = "py-2 text-xs md:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-white text-slate-900 shadow-sm";
+                tabUsed.className = "py-2 text-xs md:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900";
+                optsNew.classList.remove('hidden');
+                optsUsed.classList.add('hidden');
+            } else {
+                tabUsed.className = "py-2 text-xs md:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 bg-white text-slate-900 shadow-sm";
+                tabNew.className = "py-2 text-xs md:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900";
+                optsUsed.classList.remove('hidden');
+                optsNew.classList.add('hidden');
+            }
+            updateImportConditionKey();
+        }
+
+        function updateImportConditionKey() {
+            if (activeImportCategory === 'new') {
+                activeImportConditionKey = document.getElementById('importNewSub').value;
+            } else {
+                const wear = document.getElementById('importUsedWear').value;
+                const hasInstructions = document.getElementById('importHasInstructions').checked;
+                const hasBox = document.getElementById('importHasBox').checked;
+
+                if (hasInstructions && hasBox) {
+                    activeImportConditionKey = `with_instructions_and_box_${wear}`;
+                } else if (hasInstructions && !hasBox) {
+                    activeImportConditionKey = `with_instructions_no_box_${wear}`;
+                } else if (!hasInstructions && hasBox) {
+                    activeImportConditionKey = `no_instructions_with_box_${wear}`;
+                } else {
+                    activeImportConditionKey = `no_instructions_no_box_${wear}`;
+                }
+            }
+        }
+
+        // BATCH IMPORT (ECHTE BRICKLINK API ÜBER NETLIFY BACKEND)
+        async function processBatchImport() {
+            const rawText = document.getElementById('batchSetInput').value;
+            const setNumbers = rawText.split(/[\s,]+/).map(s => s.trim()).filter(s => s.length > 0);
+
+            if (setNumbers.length === 0) {
+                alert("Bitte gib mindestens eine Setnummer ein.");
+                return;
+            }
+
+            document.getElementById('importLoader').classList.remove('hidden');
+
+            for (let setNo of setNumbers) {
+                try {
+                    const response = await fetch(`/.netlify/functions/calculate-price?set=${setNo}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`Fehler bei Abfrage von Set ${setNo}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    let baseValue = data.baseValue || data.price || 100;
+                    let setName = data.name || `LEGO Set ${setNo}`;
+
+                    let pricesRef = { new: {}, used: {} };
+                    Object.keys(BASE_FACTORS.new).forEach(k => {
+                        pricesRef.new[k] = Math.round(baseValue * BASE_FACTORS.new[k] * 100) / 100;
+                    });
+                    Object.keys(BASE_FACTORS.used).forEach(k => {
+                        pricesRef.used[k] = Math.round(baseValue * BASE_FACTORS.used[k] * 100) / 100;
+                    });
+
+                    let currentPrice = pricesRef[activeImportCategory][activeImportConditionKey] || 0;
+
+                    cart.push({
+                        id: Date.now() + Math.random(),
+                        setNo: setNo,
+                        name: setName,
+                        category: activeImportCategory,
+                        conditionKey: activeImportConditionKey,
+                        qty: 1,
+                        price: currentPrice,
+                        pricesRef: pricesRef,
+                        checked: false,
+                        checkStatus: 'ok',
+                        checkNote: ''
+                    });
+
+                } catch (err) {
+                    console.error(err);
+                    alert(`Konnte Set ${setNo} nicht von BrickLink abrufen. Prüfe die Setnummer oder die API-Schlüssel.`);
+                }
+            }
+
+            document.getElementById('importLoader').classList.add('hidden');
+            document.getElementById('batchSetInput').value = '';
+            renderCartTable();
+        }
+
+        function renderCartTable() {
+            const tbody = document.getElementById('cartTableBody');
+            document.getElementById('checkBadge').innerText = cart.length;
+
+            if (cart.length === 0) {
+                tbody.innerHTML = `
+                    <tr id="emptyRow">
+                        <td colspan="6" class="py-12 text-center text-slate-400">
+                            <i class="fa-solid fa-box-open text-4xl mb-2 block opacity-30"></i>
+                            Noch keine Sets hinzugefügt.
+                        </td>
+                    </tr>`;
+                calculateFinalOffer();
+                return;
+            }
+
+            tbody.innerHTML = '';
+
+            cart.forEach((item, index) => {
+                const totalItemPrice = item.price * item.qty;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition";
+                tr.innerHTML = `
+                    <td class="py-3 px-4">
+                        <div class="font-bold text-slate-900">${item.setNo}</div>
+                        <div class="text-xs text-slate-500">${item.name}</div>
+                    </td>
+                    <td class="py-3 px-4">
+                        ${buildRowConditionSelector(index, item)}
+                    </td>
+                    <td class="py-3 px-2 text-center">
+                        <input type="number" value="${item.qty}" min="1" onchange="updateItemQty(${index}, this.value)" class="w-12 bg-slate-100 border border-slate-200 rounded-lg p-1 text-center font-bold text-slate-800 text-xs">
+                    </td>
+                    <td class="py-3 px-4 text-right font-semibold text-slate-700 text-xs">
+                        ${formatEur(item.price)}
+                    </td>
+                    <td class="py-3 px-4 text-right font-bold text-slate-900 text-xs">
+                        ${formatEur(totalItemPrice)}
+                    </td>
+                    <td class="py-3 px-2 text-center">
+                        <button onclick="removeCartItem(${index})" class="text-slate-400 hover:text-rose-600 p-1 rounded transition">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            calculateFinalOffer();
+        }
+
+        function buildRowConditionSelector(index, item) {
+            return `
+                <select onchange="changeRowCondition(${index}, this.value)" class="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg p-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500 text-slate-700">
+                    <optgroup label="--- NEUWARE ---">
+                        <option value="new|sealed_light_wear" ${item.category==='new'&&item.conditionKey==='sealed_light_wear'?'selected':''}>Neu: OVP versiegelt (Leicht)</option>
+                        <option value="new|sealed_heavy_wear" ${item.category==='new'&&item.conditionKey==='sealed_heavy_wear'?'selected':''}>Neu: OVP versiegelt (Dellen)</option>
+                        <option value="new|sealed_damaged" ${item.category==='new'&&item.conditionKey==='sealed_damaged'?'selected':''}>Neu: OVP versiegelt (Beschädigt)</option>
+                        <option value="new|opened_bags_light_wear" ${item.category==='new'&&item.conditionKey==='opened_bags_light_wear'?'selected':''}>Neu: OVP auf, Tüten zu (Leicht)</option>
+                        <option value="new|opened_bags_heavy_wear" ${item.category==='new'&&item.conditionKey==='opened_bags_heavy_wear'?'selected':''}>Neu: OVP auf, Tüten zu (Stark)</option>
+                        <option value="new|opened_bags_damaged" ${item.category==='new'&&item.conditionKey==='opened_bags_damaged'?'selected':''}>Neu: OVP auf, Tüten zu (Beschädigt)</option>
+                    </optgroup>
+                    <optgroup label="--- GEBRAUCHT ---">
+                        <option value="used|with_instructions_and_box_light" ${item.category==='used'&&item.conditionKey==='with_instructions_and_box_light'?'selected':''}>Gebraucht: Anleitung + OVP (Sehr gut)</option>
+                        <option value="used|with_instructions_and_box_medium" ${item.category==='used'&&item.conditionKey==='with_instructions_and_box_medium'?'selected':''}>Gebraucht: Anleitung + OVP (Mittel)</option>
+                        <option value="used|with_instructions_and_box_heavy" ${item.category==='used'&&item.conditionKey==='with_instructions_and_box_heavy'?'selected':''}>Gebraucht: Anleitung + OVP (Stark)</option>
+                        
+                        <option value="used|with_instructions_no_box_light" ${item.category==='used'&&item.conditionKey==='with_instructions_no_box_light'?'selected':''}>Gebraucht: Mit Anleitung, ohne OVP (Sehr gut)</option>
+                        <option value="used|with_instructions_no_box_medium" ${item.category==='used'&&item.conditionKey==='with_instructions_no_box_medium'?'selected':''}>Gebraucht: Mit Anleitung, ohne OVP (Mittel)</option>
+                        <option value="used|with_instructions_no_box_heavy" ${item.category==='used'&&item.conditionKey==='with_instructions_no_box_heavy'?'selected':''}>Gebraucht: Mit Anleitung, ohne OVP (Stark)</option>
+
+                        <option value="used|no_instructions_with_box_light" ${item.category==='used'&&item.conditionKey==='no_instructions_with_box_light'?'selected':''}>Gebraucht: Ohne Anleitung, mit OVP (Sehr gut)</option>
+                        <option value="used|no_instructions_with_box_medium" ${item.category==='used'&&item.conditionKey==='no_instructions_with_box_medium'?'selected':''}>Gebraucht: Ohne Anleitung, mit OVP (Mittel)</option>
+                        <option value="used|no_instructions_with_box_heavy" ${item.category==='used'&&item.conditionKey==='no_instructions_with_box_heavy'?'selected':''}>Gebraucht: Ohne Anleitung, mit OVP (Stark)</option>
+
+                        <option value="used|no_instructions_no_box_light" ${item.category==='used'&&item.conditionKey==='no_instructions_no_box_light'?'selected':''}>Gebraucht: Loose (Sehr gut)</option>
+                        <option value="used|no_instructions_no_box_medium" ${item.category==='used'&&item.conditionKey==='no_instructions_no_box_medium'?'selected':''}>Gebraucht: Loose (Mittel)</option>
+                        <option value="used|no_instructions_no_box_heavy" ${item.category==='used'&&item.conditionKey==='no_instructions_no_box_heavy'?'selected':''}>Gebraucht: Loose (Stark / Fehlteile)</option>
+                    </optgroup>
+                </select>
+            `;
+        }
+
+        function changeRowCondition(index, compositeVal) {
+            const [cat, condKey] = compositeVal.split('|');
+            cart[index].category = cat;
+            cart[index].conditionKey = condKey;
+            cart[index].price = cart[index].pricesRef[cat][condKey] || 0;
+            renderCartTable();
+        }
+
+        function updateItemQty(index, qty) {
+            cart[index].qty = Math.max(1, parseInt(qty) || 1);
+            renderCartTable();
+        }
+
+        function removeCartItem(index) {
+            cart.splice(index, 1);
+            renderCartTable();
+        }
+
+        function clearAllCart() {
+            if (cart.length > 0 && confirm("Möchtest du alle eingetragenen Sets löschen?")) {
+                cart = [];
+                renderCartTable();
+            }
+        }
+
+        function calculateFinalOffer() {
+            const rawSetsTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            
+            const oneWayKm = parseFloat(document.getElementById('driveKm').value) || 0;
+            const roundTripKm = oneWayKm * 2;
+            const driveCost = roundTripKm * 0.30;
+
+            const shippingCost = parseFloat(document.getElementById('shippingCostSelect').value) || 0;
+            
+            const riskMarginPercent = parseFloat(document.getElementById('riskMarginPercent').value) || 0;
+            const riskCost = rawSetsTotal * (riskMarginPercent / 100);
+
+            let finalOffer = rawSetsTotal - driveCost - shippingCost - riskCost;
+            if (finalOffer < 0) finalOffer = 0;
+
+            document.getElementById('summaryRawTotal').innerText = formatEur(rawSetsTotal);
+            document.getElementById('summaryKm').innerText = roundTripKm;
+            document.getElementById('summaryDriveCost').innerText = "-" + formatEur(driveCost);
+            document.getElementById('summaryShippingCost').innerText = "-" + formatEur(shippingCost);
+            document.getElementById('summaryRiskCost').innerText = "-" + formatEur(riskCost);
+            document.getElementById('summaryFinalOffer').innerText = formatEur(finalOffer);
+
+            return { rawSetsTotal, driveCost, shippingCost, riskCost, finalOffer };
+        }
+
+        // =================================================================
+        // MOBILE CHECKLIST RENDER & VOR-ORT LOGIK
+        // =================================================================
+        function renderChecklist() {
+            const container = document.getElementById('checklistContainer');
+            syncCustomerData();
+
+            if (cart.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-slate-400">
+                        Keine Sets in der Prüfliste vorhanden. Gehe zurück zur Kalkulation.
+                    </div>`;
+                updateChecklistTotals();
+                return;
+            }
+
+            container.innerHTML = '';
+            let passedCount = 0;
+
+            cart.forEach((item, index) => {
+                if (item.checked) passedCount++;
+
+                const condLabel = CONDITION_LABELS[item.conditionKey] || item.conditionKey;
+
+                const div = document.createElement('div');
+                div.className = `p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 transition ${item.checkStatus === 'rejected' ? 'bg-rose-50/60 opacity-60' : item.checked ? 'bg-emerald-50/30' : ''}`;
+                
+                div.innerHTML = `
+                    <div class="flex items-start gap-3 w-full md:w-auto">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleCheckItem(${index}, this.checked)" class="w-6 h-6 mt-0.5 text-brand-500 rounded-lg border-slate-300 focus:ring-brand-500 cursor-pointer">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-extrabold text-slate-900 text-base">${item.setNo}</span>
+                                <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">${item.name}</span>
+                                <span class="text-xs font-bold text-slate-400">(${item.qty}x)</span>
+                            </div>
+                            <div class="text-xs text-slate-500 font-medium mt-0.5">${condLabel}</div>
+                            ${item.checkNote ? `<div class="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded mt-1 border border-amber-200 inline-block font-medium"><i class="fa-solid fa-comment-dots mr-1"></i> ${item.checkNote}</div>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                        <select onchange="updateCheckStatus(${index}, this.value)" class="text-xs font-bold rounded-lg p-2 border ${getStatusStyle(item.checkStatus)}">
+                            <option value="ok" ${item.checkStatus==='ok'?'selected':''}>✅ In Ordnung (100%)</option>
+                            <option value="missing_parts" ${item.checkStatus==='missing_parts'?'selected':''}>⚠️ Fehlteile (-15%)</option>
+                            <option value="damaged" ${item.checkStatus==='damaged'?'selected':''}>⚠️ Zustand schlechter (-25%)</option>
+                            <option value="rejected" ${item.checkStatus==='rejected'?'selected':''}>❌ Storniert / Fehlt (0%)</option>
+                        </select>
+
+                        <div class="text-right">
+                            <span class="block text-xs text-slate-400">Kalkuliert: ${formatEur(item.price * item.qty)}</span>
+                            <span class="block text-sm font-extrabold ${item.checkStatus==='rejected'?'line-through text-slate-400':'text-emerald-700'}">
+                                Real: ${formatEur(getItemOnSitePrice(item) * item.qty)}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('checkPassedCount').innerText = passedCount;
+            document.getElementById('checkTotalCount').innerText = cart.length;
+
+            updateChecklistTotals();
+        }
+
+        function getStatusStyle(status) {
+            switch(status) {
+                case 'ok': return 'bg-emerald-50 border-emerald-200 text-emerald-800';
+                case 'missing_parts': return 'bg-amber-50 border-amber-200 text-amber-800';
+                case 'damaged': return 'bg-orange-50 border-orange-200 text-orange-800';
+                case 'rejected': return 'bg-rose-50 border-rose-200 text-rose-800';
+                default: return 'bg-slate-50 border-slate-200 text-slate-800';
+            }
+        }
+
+        function getItemOnSitePrice(item) {
+            if (item.checkStatus === 'rejected') return 0;
+            let factor = 1.0;
+            if (item.checkStatus === 'missing_parts') factor = 0.85;
+            if (item.checkStatus === 'damaged') factor = 0.75;
+            return item.price * factor;
+        }
+
+        function toggleCheckItem(index, checked) {
+            cart[index].checked = checked;
+            renderChecklist();
+        }
+
+        function updateCheckStatus(index, status) {
+            cart[index].checkStatus = status;
+            if (status === 'rejected') cart[index].checked = false;
+            else cart[index].checked = true;
+
+            if (status === 'missing_parts' || status === 'damaged') {
+                let note = prompt("Kurze Notiz zur Abweichung (z.B. Minifigur fehlt / Anleitung eingerissen):", cart[index].checkNote || "");
+                if (note !== null) cart[index].checkNote = note;
+            }
+            renderChecklist();
+        }
+
+        function resetChecklistStatus() {
+            cart.forEach(item => {
+                item.checked = false;
+                item.checkStatus = 'ok';
+                item.checkNote = '';
+            });
+            renderChecklist();
+        }
+
+        function updateChecklistTotals() {
+            const calcRes = calculateFinalOffer();
+            
+            let onSiteSetsTotal = cart.reduce((sum, item) => sum + (getItemOnSitePrice(item) * item.qty), 0);
+            let diffSets = onSiteSetsTotal - calcRes.rawSetsTotal;
+
+            let finalOnSiteOffer = onSiteSetsTotal - calcRes.driveCost - calcRes.shippingCost - (onSiteSetsTotal * (parseFloat(document.getElementById('riskMarginPercent').value) / 100));
+            if (finalOnSiteOffer < 0) finalOnSiteOffer = 0;
+
+            document.getElementById('checkCalcOffer').innerText = formatEur(calcRes.finalOffer);
+            document.getElementById('checkDiffOffer').innerText = (diffSets <= 0 ? "" : "+") + formatEur(diffSets);
+            document.getElementById('checkFinalOffer').innerText = formatEur(finalOnSiteOffer);
+
+            return finalOnSiteOffer;
+        }
+
+        // =================================================================
+        // LOCAL STORAGE PERSISTENCE & CUSTOMER ACCOUNTS LOGIC
+        // =================================================================
+        function getAllSavedDeals() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                console.error("Fehler beim Lesen des LocalStorage:", e);
+                return [];
+            }
+        }
+
+        function saveAllSavedDeals(dealsArray) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(dealsArray));
+                updateSavedDealsBadge();
+            } catch (e) {
+                alert("Fehler beim Speichern in den lokalen Speicher: " + e.message);
+            }
+        }
+
+        function updateSavedDealsBadge() {
+            const deals = getAllSavedDeals();
+            document.getElementById('savedDealsCountBadge').innerText = deals.length;
+        }
+
+        function saveCurrentDeal() {
+            syncCustomerData();
+            const calcRes = calculateFinalOffer();
+            const finalOnSiteOffer = updateChecklistTotals();
+
+            if (!customerData.name && cart.length === 0) {
+                alert("Bitte trage zumindest einen Kunden-Namen ein oder füge Sets hinzu, bevor du speicherst.");
+                return;
+            }
+
+            const deals = getAllSavedDeals();
+            const nowStr = new Date().toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+            if (dealStatus === 'draft') dealStatus = 'saved';
+            lastSavedAt = nowStr;
+
+            const dealPayload = {
+                id: currentDealId,
+                status: dealStatus,
+                updatedAt: nowStr,
+                customer: { ...customerData },
+                logistics: {
+                    driveKm: document.getElementById('driveKm').value,
+                    shippingCost: document.getElementById('shippingCostSelect').value,
+                    riskMarginPercent: document.getElementById('riskMarginPercent').value
+                },
+                cart: cart,
+                summary: {
+                    calcOffer: calcRes.finalOffer,
+                    finalOnSiteOffer: finalOnSiteOffer,
+                    setCount: cart.length
+                }
+            };
+
+            const existingIndex = deals.findIndex(d => d.id === currentDealId);
+            if (existingIndex >= 0) {
+                deals[existingIndex] = dealPayload;
+            } else {
+                deals.unshift(dealPayload);
+            }
+
+            saveAllSavedDeals(deals);
+            updateBannerInfo();
+
+            alert(`✅ Kundenakte "${customerData.name || currentDealId}" erfolgreich gespeichert!`);
+        }
+
+        function markCurrentDealComplete() {
+            dealStatus = 'completed';
+            saveCurrentDeal();
+        }
+
+        function loadDealById(dealId) {
+            const deals = getAllSavedDeals();
+            const deal = deals.find(d => d.id === dealId);
+
+            if (!deal) {
+                alert("Akte konnte nicht gefunden werden.");
+                return;
+            }
+
+            currentDealId = deal.id;
+            dealStatus = deal.status || 'saved';
+            lastSavedAt = deal.updatedAt;
+
+            customerData = { ...deal.customer };
+            document.getElementById('custName').value = customerData.name || '';
+            document.getElementById('custPhone').value = customerData.phone || '';
+            document.getElementById('custLocation').value = customerData.location || '';
+            document.getElementById('custNotes').value = customerData.notes || '';
+
+            if (deal.logistics) {
+                document.getElementById('driveKm').value = deal.logistics.driveKm || 0;
+                document.getElementById('shippingCostSelect').value = deal.logistics.shippingCost || 0;
+                document.getElementById('riskMarginPercent').value = deal.logistics.riskMarginPercent || 0;
+            }
+
+            cart = deal.cart || [];
+
+            syncCustomerData();
+            renderCartTable();
+            closeSavedDealsModal();
+
+            alert(`📂 Kundenakte "${customerData.name || currentDealId}" geladen.`);
+        }
+
+        function deleteDealById(dealId) {
+            if (!confirm("Möchtest du diese Kundenakte unwiderruflich löschen?")) return;
+
+            let deals = getAllSavedDeals();
+            deals = deals.filter(d => d.id !== dealId);
+            saveAllSavedDeals(deals);
+
+            renderSavedDealsList();
+
+            if (currentDealId === dealId) {
+                createNewDeal(false);
+            }
+        }
+
+        // MODAL HANDLERS & RENDER
+        function openSavedDealsModal() {
+            document.getElementById('savedDealsModal').classList.remove('hidden');
+            renderSavedDealsList();
+        }
+
+        function closeSavedDealsModal() {
+            document.getElementById('savedDealsModal').classList.add('hidden');
+        }
+
+        function renderSavedDealsList() {
+            const container = document.getElementById('savedDealsListContainer');
+            const deals = getAllSavedDeals();
+            const search = document.getElementById('dealSearchInput').value.toLowerCase();
+
+            const filtered = deals.filter(d => {
+                const nameMatch = (d.customer.name || '').toLowerCase().includes(search);
+                const locMatch = (d.customer.location || '').toLowerCase().includes(search);
+                const idMatch = d.id.toLowerCase().includes(search);
+                return nameMatch || locMatch || idMatch;
+            });
+
+            document.getElementById('savedDealsTotalInfo').innerText = `${filtered.length} von ${deals.length} Akten angezeigt`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-slate-400">
+                        <i class="fa-solid fa-folder-open text-3xl mb-2 block opacity-30"></i>
+                        Keine gespeicherten Kundenakten gefunden.
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            filtered.forEach(d => {
+                const div = document.createElement('div');
+                div.className = `bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-3 transition hover:border-brand-500 ${d.id === currentDealId ? 'ring-2 ring-brand-500' : ''}`;
+                
+                let statusBadge = '<span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">Gespeichert</span>';
+                if (d.status === 'completed') statusBadge = '<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">Abgeschlossen</span>';
+
+                div.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            ${statusBadge}
+                            <h4 class="font-bold text-slate-900 text-sm">${d.customer.name || 'Unbenannt'}</h4>
+                            <span class="text-xs text-slate-400 font-mono">[${d.id}]</span>
+                        </div>
+                        <p class="text-xs text-slate-500">
+                            <i class="fa-solid fa-map-pin text-slate-400 mr-1"></i> ${d.customer.location || 'Kein Ort'} | 
+                            <i class="fa-solid fa-box text-slate-400 mr-1"></i> ${d.summary ? d.summary.setCount : 0} Sets | 
+                            <i class="fa-regular fa-clock text-slate-400 mr-1"></i> ${d.updatedAt}
+                        </p>
+                    </div>
+
+                    <div class="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                        <div class="text-right">
+                            <span class="block text-[10px] text-slate-400 uppercase font-bold">Auszahlung</span>
+                            <span class="text-sm font-extrabold text-emerald-600">${formatEur(d.summary ? d.summary.finalOnSiteOffer : 0)}</span>
+                        </div>
+
+                        <div class="flex gap-1.5">
+                            <button onclick="loadDealById('${d.id}')" class="bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                                <i class="fa-solid fa-folder-open"></i> Laden
+                            </button>
+                            <button onclick="deleteDealById('${d.id}')" class="bg-slate-100 hover:bg-rose-100 text-slate-400 hover:text-rose-600 font-bold text-xs px-2.5 py-1.5 rounded-lg transition">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // BACKUP EXPORT & IMPORT (JSON)
+        function exportDealsJson() {
+            const deals = getAllSavedDeals();
+            if (deals.length === 0) {
+                alert("Keine Kundenakten zum Exportieren vorhanden.");
+                return;
+            }
+
+            const jsonStr = JSON.stringify(deals, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `zwostein_ankauf_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+
+            URL.revokeObjectURL(url);
+        }
+
+        function importDealsJson(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (!Array.isArray(imported)) throw new Error("Ungültiges Backup-Format");
+
+                    if (confirm(`Möchtest du ${imported.length} Kundenakten importieren? bestehende Akten bleiben erhalten.`)) {
+                        const existing = getAllSavedDeals();
+                        const mergedMap = new Map();
+
+                        existing.forEach(d => mergedMap.set(d.id, d));
+                        imported.forEach(d => mergedMap.set(d.id, d));
+
+                        const mergedArray = Array.from(mergedMap.values());
+                        saveAllSavedDeals(mergedArray);
+
+                        renderSavedDealsList();
+                        alert("✅ Backup erfolgreich importiert!");
+                    }
+                } catch (err) {
+                    alert("Fehler beim Importieren der Datei: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function formatEur(val) {
+            return (val || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+        }
+    </script>
+</body>
+</html>
