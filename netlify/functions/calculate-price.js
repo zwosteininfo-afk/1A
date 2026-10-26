@@ -127,8 +127,9 @@ exports.handler = async (event) => {
   let legoSetName = `LEGO® Set ${setNumber}`; 
 
   try {
-    const urlUsed = `https://api.bricklink.com/api/v1/items/SET/${itemNo}/price?new_or_used=U&guide_type=sold&currency_code=EUR&country_code=DE`;
-    const urlNew = `https://api.bricklink.com/api/v1/items/SET/${itemNo}/price?new_or_used=N&guide_type=sold&currency_code=EUR&country_code=DE`;
+    // Korrigierte URLs mit /api/store/v1/
+    const urlUsed = `https://api.bricklink.com/api/store/v1/items/SET/${itemNo}/price?new_or_used=U&guide_type=sold&currency_code=EUR&country_code=DE`;
+    const urlNew = `https://api.bricklink.com/api/store/v1/items/SET/${itemNo}/price?new_or_used=N&guide_type=sold&currency_code=EUR&country_code=DE`;
 
     const [usedRes, newRes] = await Promise.all([
       fetchBrickLink(urlUsed, credentials).catch(err => ({ error: err.message })),
@@ -206,3 +207,4 @@ exports.handler = async (event) => {
     })
   };
 };
+```[cite: 5]
